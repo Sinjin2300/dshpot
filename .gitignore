@@ -1,0 +1,9 @@
+/target
+src/target
+src/cli/target
+src/app/target
+result
+.vscode
+.direnv
+honeypot.db*
+honeypot_host_key.pem
