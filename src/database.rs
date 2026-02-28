@@ -9,7 +9,7 @@ pub async fn create_database(path: String) -> anyhow::Result<()> {
 
     // Check if database exists
     if Sqlite::database_exists(&db_url).await.unwrap_or(false) {
-        info!("Database already exists at {}", path);
+        warn!("Database already exists at {}", path);
         return Ok(());
     }
 
@@ -32,6 +32,7 @@ pub async fn create_database(path: String) -> anyhow::Result<()> {
         .await
         .context("Failed to create tables")?;
 
+    info!("Database created successfully at {}", path);
     Ok(())
 }
 
@@ -116,47 +117,4 @@ pub async fn insert_auth_attempt(
     }
 
     Ok(())
-}
-
-/// Get metrics for the last 24 hours
-pub async fn get_metrics_24h(pool: &SqlitePool) -> Result<Metrics24h> {
-    // Total connections
-    let connections_row = sqlx::query(
-        "SELECT COUNT(*) as count FROM connections 
-         WHERE datetime(timestamp) > datetime('now', '-1 day')",
-    )
-    .fetch_one(pool)
-    .await?;
-    let connections: i64 = connections_row.get("count");
-
-    // Unique IPs
-    let unique_ips_row = sqlx::query(
-        "SELECT COUNT(DISTINCT source_ip) as count FROM connections 
-         WHERE datetime(timestamp) > datetime('now', '-1 day')",
-    )
-    .fetch_one(pool)
-    .await?;
-    let unique_ips: i64 = unique_ips_row.get("count");
-
-    // Total auth attempts
-    let auth_attempts_row = sqlx::query(
-        "SELECT COUNT(*) as count FROM auth_attempts 
-         WHERE datetime(timestamp) > datetime('now', '-1 day')",
-    )
-    .fetch_one(pool)
-    .await?;
-    let auth_attempts: i64 = auth_attempts_row.get("count");
-
-    Ok(Metrics24h {
-        connections: connections as u64,
-        unique_ips: unique_ips as u64,
-        auth_attempts: auth_attempts as u64,
-    })
-}
-
-#[derive(Debug, Clone)]
-pub struct Metrics24h {
-    pub connections: u64,
-    pub unique_ips: u64,
-    pub auth_attempts: u64,
 }

@@ -89,7 +89,7 @@ pub async fn generate_host_key(path: &str) -> anyhow::Result<()> {
             Ok(())
         }
         Err(_) => {
-            error!("Key Already Exists, ignoring...");
+            warn!("Key Already Exists, ignoring...");
             Ok(())
         }
     }

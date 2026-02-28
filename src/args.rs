@@ -26,32 +26,24 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     Init {
-        #[arg(short = 'd', long = "db", default_value = "honeypot.db")]
-        database: String,
+        #[arg(short = 'd', long = "db")]
+        database: Option<String>,
 
-        #[arg(
-            short = 'k',
-            long = "host-key",
-            default_value = "honeypot_host_key.pem"
-        )]
-        host_key: String,
+        #[arg(short = 'k', long = "host-key")]
+        host_key: Option<String>,
     },
     Serve {
-        #[arg(short, long, default_value_t = IpAddr::V4(Ipv4Addr::new(0,0,0,0)))]
+        #[arg(short, long, env = "BIND_IP", default_value_t = IpAddr::V4(Ipv4Addr::new(0,0,0,0)))]
         bind_ip: IpAddr,
 
-        #[arg(short, long, default_value_t = 2222, value_parser = validate_port)]
+        #[arg(short, long, default_value_t = 2222, env = "BIND_PORT", value_parser = validate_port)]
         port: u16,
 
-        #[arg(short = 'd', long = "db", default_value = "honeypot.db")]
-        database: String,
+        #[arg(short = 'd', long = "db")]
+        database: Option<String>,
 
-        #[arg(
-            short = 'k',
-            long = "host-key",
-            default_value = "honeypot_host_key.pem"
-        )]
-        host_key: String,
+        #[arg(short = 'k', long = "host-key")]
+        host_key: Option<String>,
 
         #[command(flatten)]
         metrics: MetricsConfigInput,
@@ -61,7 +53,7 @@ pub enum Command {
 // Logging
 #[derive(Args, Clone, Debug)]
 pub struct LoggingConfigInput {
-    #[arg(global = true, value_enum, short = 'l', long = "log-level", default_value_t = LogLevel::Warn)]
+    #[arg(global = true, value_enum, short = 'l', long = "log-level", env = "LOG_LEVEL", default_value_t = LogLevel::Warn)]
     pub log_level: LogLevel,
 
     /// Emit runtime logs to stdout in JSON format (ignores log level), only works on serve
@@ -118,7 +110,7 @@ pub struct MetricsConfigInput {
     #[arg(long = "prom-port", required_if_eq("exporter_type", "prometheus"), value_parser = validate_port)]
     pub prometheus_port: Option<u16>,
 
-    #[arg(long = "metrics-file", required_if_eq("exporter_type", "file"))]
+    #[arg(long = "metrics-dir")]
     pub file_path: Option<PathBuf>,
 }
 
@@ -147,7 +139,7 @@ impl TryFrom<MetricsConfigInput> for Option<MetricsConfig> {
                 MetricsExporter::File => {
                     let file_path = input
                         .file_path
-                        .ok_or_else(|| anyhow!("Filepath not specified for Metrics"))?;
+                        .unwrap_or_else(|| resolve_path(None, "").into());
                     Ok(Some(MetricsConfig::File(file_path)))
                 }
             }
@@ -155,6 +147,22 @@ impl TryFrom<MetricsConfigInput> for Option<MetricsConfig> {
             Ok(None)
         }
     }
+}
+
+// Resolve path
+pub fn resolve_path(explicit: Option<String>, filename: &str) -> String {
+    if let Some(path) = explicit {
+        return path;
+    }
+
+    if let Ok(data_dir) = std::env::var("DATA_DIR") {
+        return PathBuf::from(data_dir)
+            .join(filename)
+            .to_string_lossy()
+            .to_string();
+    }
+
+    filename.to_string()
 }
 
 // Validator

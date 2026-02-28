@@ -1,16 +1,18 @@
-use crate::args::{Cli, Command, MetricsConfigInput};
-
+use crate::args::{Cli, Command, MetricsConfigInput, resolve_path};
 use crate::database::{connect_database, create_database, insert_connection};
-use crate::metrics::{MetricsConfig, serve_prometheus};
+use crate::metrics::{MetricsConfig, ReportWindow, build_report, format_report, serve_prometheus};
 use crate::prelude::*;
 use crate::ssh::{HoneypotHandler, generate_host_key, load_ssh_config};
 use russh::server::run_stream;
 use sqlx::{Pool, Sqlite};
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::fs;
 use tokio::net::TcpListener;
 use tokio::signal::unix::{SignalKind, signal};
 use tokio::task::JoinSet;
+use tokio::time::interval;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 /// Run the application with the provided CLI arguments
@@ -18,11 +20,16 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
     // Execute the command
     match cli.command {
         Command::Init { database, host_key } => {
-            create_database(database).await?;
-            info!("Database initialized successfully");
+            // Get the appropriate path for each
+            let database = resolve_path(database, "honeypot.db");
+            let host_key = resolve_path(host_key, "honeypot_host_key.pem");
+            info!(database = %database, host_key = %host_key, "Resolved paths");
 
+            // Initialize db
+            create_database(database).await?;
+
+            // Create SSH Host Key
             generate_host_key(&host_key).await?;
-            info!("Created host key at {}", host_key);
         }
         Command::Serve {
             bind_ip,
@@ -31,14 +38,22 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
             host_key,
             metrics,
         } => {
+            // Get the appropriate path for each
+            let database = resolve_path(database, "honeypot.db");
+            let host_key = resolve_path(host_key, "honeypot_host_key.pem");
+            info!(database = %database, host_key = %host_key, "Resolved paths");
+
             // Get database handle
             let pool = connect_database(database).await?;
 
+            // Create shutdown token
+            let shutdown = CancellationToken::new();
+
             // Setup metrics
-            setup_metrics(metrics).await?;
+            setup_metrics(metrics, pool.clone(), shutdown.clone()).await?;
 
             // Start server
-            start_server(bind_ip, port, host_key, pool).await?;
+            start_server(bind_ip, port, host_key, pool, shutdown.clone()).await?;
         }
     };
 
@@ -50,12 +65,10 @@ pub async fn start_server(
     port: u16,
     host_key: String,
     pool: Pool<Sqlite>,
+    shutdown: CancellationToken,
 ) -> anyhow::Result<()> {
     // Bind Tcp Listener
     let listener = TcpListener::bind((bind_ip, port)).await?;
-
-    // Create shutdown token
-    let shutdown = CancellationToken::new();
 
     // Spawn signal handler that triggers shutdown
     let shutdown_trigger = shutdown.clone();
@@ -149,7 +162,11 @@ pub async fn start_server(
     Ok(())
 }
 
-pub async fn setup_metrics(metrics: MetricsConfigInput) -> anyhow::Result<()> {
+pub async fn setup_metrics(
+    metrics: MetricsConfigInput,
+    pool: Pool<Sqlite>,
+    shutdown: CancellationToken,
+) -> anyhow::Result<()> {
     info!("Parsing Metrics");
     if let Some(metrics) = metrics.try_into()? {
         match metrics {
@@ -162,10 +179,54 @@ pub async fn setup_metrics(metrics: MetricsConfigInput) -> anyhow::Result<()> {
                     }
                 });
             }
-            MetricsConfig::File(path_buf) => todo!(),
+            MetricsConfig::File(path_buf) => {
+                tokio::spawn(async move {
+                    if let Err(e) = file_metrics_loop(path_buf, pool, shutdown, 5).await {
+                        error!(error = %e, "Metrics File Exporter Failed");
+                    }
+                });
+            }
         }
     } else {
         warn!("Metrics not configured");
     }
+    Ok(())
+}
+
+pub async fn file_metrics_loop(
+    dir: PathBuf,
+    pool: Pool<Sqlite>,
+    shutdown: CancellationToken,
+    top_n: u32,
+) -> anyhow::Result<()> {
+    info!("Starting Metrics File Exporter");
+
+    // Default to updating the files every half hour
+    let mut ticker = interval(std::time::Duration::from_secs(1800));
+
+    loop {
+        tokio::select! {
+            _ = ticker.tick() => {
+                let windows = [
+                    (ReportWindow::LastHour,  "metrics_last_hour.txt"),
+                    (ReportWindow::Last24h,   "metrics_last_24h.txt"),
+                    (ReportWindow::AllTime,   "metrics_all_time.txt"),
+                ];
+
+                for (window, filename) in windows {
+                    let report = build_report(&pool, window, top_n).await?;
+                    let output = format_report(&report);
+                    fs::write(dir.join(filename), output).await
+                        .context(format!("Failed to write {}", filename))?;
+                }
+                info!("Metrics Files Updated");
+            }
+            _ = shutdown.cancelled() => {
+                warn!("Metrics file loop shutting down");
+                break;
+            }
+        }
+    }
+
     Ok(())
 }

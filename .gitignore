@@ -5,5 +5,6 @@ src/app/target
 result
 .vscode
 .direnv
+metrics_*
 honeypot.db*
 honeypot_host_key.pem
