@@ -17,6 +17,7 @@ pub fn init(config: &LoggingConfig) -> anyhow::Result<()> {
         .with_filter(
             tracing_subscriber::filter::Targets::new()
                 .with_target(env!("CARGO_PKG_NAME"), level)
+                .with_target("runtime", Level::ERROR) // To avoid double logging
                 .with_default(level),
         );
 
@@ -30,8 +31,7 @@ pub fn init(config: &LoggingConfig) -> anyhow::Result<()> {
                 .with_current_span(false)
                 .with_target(false)
                 .with_filter(
-                    tracing_subscriber::filter::Targets::new()
-                        .with_target("runtime", tracing::Level::TRACE),
+                    tracing_subscriber::filter::Targets::new().with_target("runtime", Level::TRACE),
                 ),
         )
     } else {
