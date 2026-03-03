@@ -26,7 +26,7 @@ pub async fn create_database(path: String) -> anyhow::Result<()> {
         .context("Failed to connect to new database")?;
 
     // Create tables from schema.sql
-    let schema = include_str!("./schema.sql");
+    let schema = include_str!("schema.sql");
     sqlx::query(schema)
         .execute(&pool)
         .await

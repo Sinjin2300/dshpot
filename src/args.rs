@@ -101,16 +101,20 @@ impl From<LogLevel> for Level {
 #[derive(Args, Debug)]
 #[group(requires_all = ["exporter_type"])]
 pub struct MetricsConfigInput {
-    #[arg(long = "metrics-exporter", value_enum)]
+    #[arg(long = "metrics-exporter", value_enum, env = "METRICS_EXPORTER")]
     pub exporter_type: Option<MetricsExporter>,
 
-    #[arg(long = "prom-ip", required_if_eq("exporter_type", "prometheus"))]
+    #[arg(
+        long = "prom-ip",
+        required_if_eq("exporter_type", "prometheus"),
+        env = "PROMETHEUS_IP"
+    )]
     pub prometheus_ip: Option<IpAddr>,
 
-    #[arg(long = "prom-port", required_if_eq("exporter_type", "prometheus"), value_parser = validate_port)]
+    #[arg(long = "prom-port", required_if_eq("exporter_type", "prometheus"), value_parser = validate_port, env = "PROMETHEUS_PORT")]
     pub prometheus_port: Option<u16>,
 
-    #[arg(long = "metrics-dir")]
+    #[arg(long = "metrics-dir", env = "METRICS_FILEPATH")]
     pub file_path: Option<PathBuf>,
 }
 
