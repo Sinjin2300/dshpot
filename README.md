@@ -76,6 +76,51 @@ under a transient `DynamicUser` with a restricted capability set.
 | `metricsType`  | enum    | `"file"`      | Metrics backend: `file` or `none`                |
 | `logLevel`     | enum    | `"warn"`      | Log level: `trace` `debug` `info` `warn` `error` |
 
+## Container
+
+Pre-built images are published to the GitHub Container Registry on every push to
+`main`:
+
+```sh
+docker pull ghcr.io/sinjin2300/dshpot:latest
+```
+
+Run the container:
+
+```sh
+docker run \
+  --name dshpot \
+  --restart unless-stopped \
+  -e LOG_LEVEL=info \
+  -e BIND_PORT=2222 \
+  -e BIND_IP=0.0.0.0 \
+  -p 2222:2222 \
+  -v /var/lib/dshpot:/data \
+  ghcr.io/sinjin2300/dshpot:latest
+```
+
+The `/data` volume is where the database and host key are stored. Mount a
+persistent volume there to survive container restarts.
+
+### Environment variables
+
+| Variable           | Default   | Description                                             |
+| ------------------ | --------- | ------------------------------------------------------- |
+| `BIND_IP`          | `0.0.0.0` | IP address to bind to                                   |
+| `BIND_PORT`        | `2222`    | Port to listen on                                       |
+| `DATA_DIR`         | `/data`   | Directory for database,host key and file metrics if set |
+| `LOG_LEVEL`        | `warn`    | Log level                                               |
+| `METRICS_EXPORTER` | —         | Metrics backend: `file` or unset                        |
+
+### Building the image locally
+
+If you have Nix installed you can build the image yourself:
+
+```sh
+nix build .#container
+docker load < result
+```
+
 ## Nix flake quickstart
 
 ```sh
@@ -130,27 +175,6 @@ Build the binary:
 
 ```sh
 nix build
-```
-
-Build a container image:
-
-```sh
-nix build .#container
-```
-
-Run the container image (with some opinionated options):
-
-```sh
-{podman/docker} run \
---name dshpot \
---restart unless-stopped \
--e 'LOG_LEVEL=info' \
--e 'BIND_PORT=2222' \
--e 'BIND_IP=0.0.0.0' \
--p 2222:2222 \
--v /tmp/dshpot:/data \
-docker-archive:./result \
---metrics-exporter file
 ```
 
 With Cargo directly:
