@@ -8,7 +8,7 @@ pub enum MetricsConfig {
     File(PathBuf),
 }
 
-pub async fn serve_prometheus(ip: IpAddr, port: u16) -> anyhow::Result<()> {
+pub async fn serve_prometheus(_ip: IpAddr, _port: u16) -> anyhow::Result<()> {
     todo!()
 }
 
