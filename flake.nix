@@ -66,6 +66,7 @@
 
           packages.container = pkgs.dockerTools.buildImage {
             name = application_name;
+            tag = "latest";
             copyToRoot = pkgs.buildEnv {
               name = "root";
               paths = [
@@ -130,6 +131,7 @@
               cargo
               rust-analyzer
               clippy
+              cachix
             ];
           };
         };
