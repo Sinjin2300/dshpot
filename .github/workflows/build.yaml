@@ -1,49 +1,42 @@
 name: build
-
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v5
-
       - name: enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-
       - uses: cachix/install-nix-action@v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           extra_nix_config: |
             experimental-features = nix-command flakes
             accept-flake-config = true
-
       - uses: cachix/cachix-action@v16
         with:
           name: dshpot
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
       - name: check
-        run: nix flake check 
-
+        run: nix flake check
       - name: build container
         if: github.ref == 'refs/heads/main'
         run: nix build .#container
-
       - name: push container to GHCR
         if: github.ref == 'refs/heads/main'
+        env:
+          IMAGE_NAME: ${{ github.repository }}
         run: |
           docker load < $(readlink -f result)
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker tag dshpot:latest ghcr.io/${{ github.repository_owner }}/dshpot:latest
-          docker tag dshpot:latest ghcr.io/${{ github.repository_owner }}/dshpot:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/dshpot:latest
-          docker push ghcr.io/${{ github.repository_owner }}/dshpot:${{ github.sha }}
+          docker tag dshpot:latest ghcr.io/${IMAGE_NAME}:latest
+          docker tag dshpot:latest ghcr.io/${IMAGE_NAME}:${{ github.sha }}
+          docker push ghcr.io/${IMAGE_NAME}:latest
+          docker push ghcr.io/${IMAGE_NAME}:${{ github.sha }}
