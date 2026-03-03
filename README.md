@@ -15,7 +15,66 @@ and password pair it receives.
 - Dual-channel structured logging — app health to stderr, runtime events to
   stdout (optionally as JSON for log ingestion pipelines)
 - Prometheus metrics exporter (in progress)
-- Nix flake with naersk for reproducible builds and a container image target
+- Nix flake with crane for reproducible builds and a container image target
+- NixOS module for running as a managed systemd service
+
+## NixOS module
+
+A NixOS module is provided for running dshpot as a managed systemd service with
+proper sandboxing and state directory management.
+
+Add dshpot to your system flake inputs:
+
+```nix
+inputs = {
+  dshpot = {
+    url = "github:Sinjin2300/dshpot";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+};
+```
+
+Import the module in your `nixosSystem`:
+
+```nix
+outputs = { nixpkgs, dshpot, ... }: {
+  nixosConfigurations.mymachine = nixpkgs.lib.nixosSystem {
+    system = "x86_64-linux";
+    modules = [
+      dshpot.nixosModules.default
+      ./configuration.nix
+    ];
+  };
+};
+```
+
+Then enable it in your `configuration.nix`:
+
+```nix
+services.dshpot = {
+  enable = true;
+  openFirewall = true;   # opens honeypotPort in the firewall
+  honeypotPort = 2222;
+  honeypotIp = "0.0.0.0";
+  metricsType = "file";  # or "none"
+  logLevel = "info";     # trace | debug | info | warn | error
+};
+```
+
+State is stored in `/var/lib/dshpot` and managed by systemd. The service runs
+under a transient `DynamicUser` with a restricted capability set.
+
+### Module options
+
+| Option         | Type    | Default       | Description                                      |
+| -------------- | ------- | ------------- | ------------------------------------------------ |
+| `enable`       | bool    | `false`       | Enable the dshpot service                        |
+| `package`      | package | flake default | Override the dshpot package                      |
+| `honeypotPort` | port    | `2222`        | Port the honeypot listens on                     |
+| `honeypotIp`   | str     | `"0.0.0.0"`   | IP address to bind to                            |
+| `openFirewall` | bool    | `false`       | Open `honeypotPort` in the firewall              |
+| `metricsType`  | enum    | `"file"`      | Metrics backend: `file` or `none`                |
+| `logLevel`     | enum    | `"warn"`      | Log level: `trace` `debug` `info` `warn` `error` |
 
 ## Nix flake quickstart
 
@@ -134,4 +193,4 @@ dshpot serve -j | jq .
 - [ ] Capture SSH client version string and store in `client_version` column
 - [ ] Integration tests against the library crate
 - [x] Make it reference proper data dir for files (env var DATA_DIR)
-- [ ] NixOS module for running as a systemd service with proper state directory
+- [x] NixOS module for running as a systemd service with proper state directory
