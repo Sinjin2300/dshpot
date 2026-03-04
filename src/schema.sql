@@ -30,3 +30,5 @@ CREATE INDEX IF NOT EXISTS idx_connections_source_ip ON connections(source_ip);
 CREATE INDEX IF NOT EXISTS idx_auth_connection ON auth_attempts(connection_id);
 CREATE INDEX IF NOT EXISTS idx_auth_username ON auth_attempts(username);
 CREATE INDEX IF NOT EXISTS idx_auth_timestamp ON auth_attempts(timestamp);
+CREATE INDEX IF NOT EXISTS idx_auth_conn_time ON auth_attempts (connection_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_connections_ip_time ON connections (source_ip, timestamp);
