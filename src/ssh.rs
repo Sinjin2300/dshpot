@@ -38,9 +38,9 @@ impl Handler for HoneypotHandler {
                target: "runtime",
                event = "AuthAttempt",
                client = %peer_addr,
-               password = %password,
-               username = %user,
                attempt = attempt_num,
+               username = %user,
+               password = %password,
             );
 
             // Record to database
