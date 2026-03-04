@@ -66,15 +66,16 @@ under a transient `DynamicUser` with a restricted capability set.
 
 ### Module options
 
-| Option         | Type    | Default       | Description                                      |
-| -------------- | ------- | ------------- | ------------------------------------------------ |
-| `enable`       | bool    | `false`       | Enable the dshpot service                        |
-| `package`      | package | flake default | Override the dshpot package                      |
-| `honeypotPort` | port    | `2222`        | Port the honeypot listens on                     |
-| `honeypotIp`   | str     | `"0.0.0.0"`   | IP address to bind to                            |
-| `openFirewall` | bool    | `false`       | Open `honeypotPort` in the firewall              |
-| `metricsType`  | enum    | `"file"`      | Metrics backend: `file` or `none`                |
-| `logLevel`     | enum    | `"warn"`      | Log level: `trace` `debug` `info` `warn` `error` |
+| Option                 | Type    | Default       | Description                                      |
+| ---------------------- | ------- | ------------- | ------------------------------------------------ |
+| `enable`               | bool    | `false`       | Enable the dshpot service                        |
+| `package`              | package | flake default | Override the dshpot package                      |
+| `honeypotPort`         | port    | `2222`        | Port the honeypot listens on                     |
+| `honeypotIp`           | str     | `"0.0.0.0"`   | IP address to bind to                            |
+| `openFirewall`         | bool    | `false`       | Open `honeypotPort` in the firewall              |
+| `metricsType`          | enum    | `"file"`      | Metrics backend: `file` or `none`                |
+| `logLevel`             | enum    | `"warn"`      | Log level: `trace` `debug` `info` `warn` `error` |
+| `disableLogTimestamps` | bool    | `true`        | Disable timestamps in logging                    |
 
 ## Container
 
@@ -94,6 +95,7 @@ docker run \
   -e LOG_LEVEL=info \
   -e BIND_PORT=2222 \
   -e BIND_IP=0.0.0.0 \
+  -e DISABLE_LOG_TIMESTAMP=true \
   -p 2222:2222 \
   -v /var/lib/dshpot:/data \
   ghcr.io/sinjin2300/dshpot:latest
@@ -104,13 +106,14 @@ persistent volume there to survive container restarts.
 
 ### Environment variables
 
-| Variable           | Default   | Description                                             |
-| ------------------ | --------- | ------------------------------------------------------- |
-| `BIND_IP`          | `0.0.0.0` | IP address to bind to                                   |
-| `BIND_PORT`        | `2222`    | Port to listen on                                       |
-| `DATA_DIR`         | `/data`   | Directory for database,host key and file metrics if set |
-| `LOG_LEVEL`        | `warn`    | Log level                                               |
-| `METRICS_EXPORTER` | —         | Metrics backend: `file` or unset                        |
+| Variable                | Default   | Description                                             |
+| ----------------------- | --------- | ------------------------------------------------------- |
+| `BIND_IP`               | `0.0.0.0` | IP address to bind to                                   |
+| `BIND_PORT`             | `2222`    | Port to listen on                                       |
+| `DATA_DIR`              | `/data`   | Directory for database,host key and file metrics if set |
+| `LOG_LEVEL`             | `warn`    | Log level                                               |
+| `DISABLE_LOG_TIMESTAMP` | `true`    | Disables log timestamps                                 |
+| `METRICS_EXPORTER`      | —         | Metrics backend: `file` or unset                        |
 
 ### Building the image locally
 

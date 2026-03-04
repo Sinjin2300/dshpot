@@ -49,6 +49,13 @@ in
       default = "warn";
       description = "Log level to use.";
     };
+
+    disableLogTimestamps = lib.mkOption {
+      default = true;
+      example = false;
+      description = "Whether to disable timestamps in logs";
+      type = lib.types.bool;
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -83,6 +90,7 @@ in
         DATA_DIR = "/var/lib/dshpot";
         LOG_LEVEL = cfg.logLevel;
         METRICS_EXPORTER = cfg.metricsType;
+        DISABLE_LOG_TIMESTAMP = if cfg.disableLogTimestamps then "true" else "false";
       };
     };
   };

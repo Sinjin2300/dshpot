@@ -134,7 +134,8 @@ pub async fn start_server(
                 tokio::select!{
                     result = run_stream(config_clone, socket, handler) =>{
                         if let Err(e) = result{
-                        tracing::warn!(
+                        warn!(
+                            ip = %peer_addr.ip(),
                             connection_id,
                             error = %e,
                             "SSH session terminated with error"

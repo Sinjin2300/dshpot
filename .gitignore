@@ -1,7 +1,5 @@
 /target
 src/target
-src/cli/target
-src/app/target
 result
 .vscode
 .direnv
