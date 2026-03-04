@@ -1,4 +1,9 @@
 {
+  nixConfig = {
+    extra-substituters = [ "https://dshpot.cachix.org" ];
+    extra-trusted-public-keys = [ "dshpot.cachix.org-1:iVhPP4NKYgIWQPq9DqvIUvuh8FgcN/PsJBoCE/9O8Rc=" ];
+  };
+
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
     crane.url = "github:ipetkov/crane";
