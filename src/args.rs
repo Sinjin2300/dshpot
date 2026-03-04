@@ -64,6 +64,15 @@ pub struct LoggingConfigInput {
         default_value_t = false
     )]
     pub json_output: bool,
+
+    /// Disables timestamps in all logging, database timestamps are unaffected
+    #[arg(
+        global = true,
+        long = "dont-log-timestamp",
+        default_value_t = false,
+        env = "DISABLE_LOG_TIMESTAMP"
+    )]
+    pub dont_log_timestamp: bool,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -81,6 +90,7 @@ impl From<LoggingConfigInput> for LoggingConfig {
         LoggingConfig {
             level: input.log_level.into(),
             json_runtime: input.json_output,
+            dont_log_timestamp: input.dont_log_timestamp,
         }
     }
 }

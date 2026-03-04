@@ -92,6 +92,7 @@
                 "DATA_DIR=/data"
                 "BIND_PORT=2222"
                 "BIND_IP=0.0.0.0"
+                "DISABLE_LOG_TIMESTAMP=true"
               ];
             };
           };
