@@ -97,12 +97,13 @@ docker run \
   -e BIND_IP=0.0.0.0 \
   -e DISABLE_LOG_TIMESTAMP=true \
   -p 2222:2222 \
-  -v /var/lib/dshpot:/data \
+  -v dshpot-data:/data \
   ghcr.io/sinjin2300/dshpot:latest
 ```
 
 The `/data` volume is where the database and host key are stored. Mount a
-persistent volume there to survive container restarts.
+persistent volume there to survive container restarts. You can find the
+mountpoint with `docker volume inspect dshpot-data`.
 
 ### Environment variables
 
